@@ -1,0 +1,219 @@
+{{ uid = request.params.uid }}
+{{ PaymentID = request.params.PaymentID }}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Зачислить платеж</title>
+    <!-- Подключение стилей Material Design Lite -->
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+    /* Центрирование таблицы и задание ширины */
+    .table-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    table {
+        width: 80%;
+        border-collapse: collapse;
+    }
+
+    td {
+        padding: 8px;
+        border-bottom: 1px solid #ccc;
+        vertical-align: middle;
+    }
+
+    .left-column {
+        text-align: left;
+        font-weight: bold;
+        color: rgba(0, 0, 0, 0.6);
+    }
+
+    .right-column {
+        text-align: right;
+        color: rgba(0, 0, 0, 0.87);
+    }
+
+        .label {
+            font-weight: bold;
+            color: #757575;
+        }
+
+        .value {
+            text-align: right;
+            color: #212121;
+        }
+
+        .input-container {
+            width: 50%;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .input-container input {
+            width: 100%;
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .submit-button {
+            display: inline-block;
+            padding: 0 20px;
+            font-size: 16px;
+            height: 48px;
+            line-height: 48px;
+            width: auto;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .result {
+            margin-bottom: 1.5rem;
+            color: #4CAF50;
+        }
+
+        .error {
+        color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Таблица без заголовков -->
+    <table>
+        <tr>
+            <td class="label">Пользователь</td>
+            <td class="value" id="user"></td>
+        </tr>
+        <!-- <tr>
+            <td class="label">Имя</td>
+            <td class="value" id="name"></td>
+        </tr> -->
+        <tr>
+            <td class="label">Телеграм</td>
+            <td class="value" id="telegram"></td>
+        </tr>
+        <tr>
+            <td class="label">Количество услуг</td>
+            <td class="value" id="services"></td>
+        </tr>
+        <!-- <tr>
+            <td class="label">Тариф</td>
+            <td class="value" id="plan"></td>
+        </tr> -->
+        <tr>
+            <td class="label">Стоимость</td>
+            <td class="value" id="cost"></td>
+        </tr>
+        <tr>
+            <td class="label">Номер услуги</td>
+            <td class="value" id="serviceNumber"></td>
+        </tr>
+        <tr>
+            <td class="label">Статус услуги</td>
+            <td class="value" id="serviceStatus"></td>
+        </tr>
+    </table>
+
+    <h1>Зачислить платеж №{{ PaymentID }}</h1>
+
+    <!-- Поле для ввода суммы -->
+    <div class="input-container">
+        <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="amount" value="2990" placeholder="">
+    </div>
+
+    <!-- Результат выполнения GET-запроса -->
+    <div class="result" id="result"></div>
+
+    <!-- Кнопка "Зачислить" -->
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored submit-button" onclick="sendPayment()">
+        <span>Зачислить</span>
+    </button>
+
+<script>
+    // Пример переменных с данными
+    var userData = {
+        user: "{{ request.params.uid | html }}",
+        telegram: "@{{ request.params.telegram | html }}",
+        services: "{{ request.params.services | html }}",
+        cost: "{{ request.params.cost | html }} руб.",
+        serviceNumber: "{{ request.params.serviceNumber | html }}",
+        serviceStatus: "{{ request.params.serviceStatus | html }}"
+    };
+
+    // Вставка значений в таблицу
+    document.getElementById('user').textContent = userData.user || "Неизвестный";
+    document.getElementById('telegram').textContent = userData.telegram;
+    document.getElementById('services').textContent = userData.services || "0";
+    document.getElementById('cost').textContent = userData.cost;
+    document.getElementById('serviceNumber').textContent = userData.serviceNumber;
+    document.getElementById('serviceStatus').textContent = userData.serviceStatus;
+
+    // Функция отправки GET-запроса
+function sendPayment() {
+    var amount = document.getElementById('amount').value;
+
+    // Проверка, что введено число
+    if (!amount || isNaN(amount)) {
+        document.getElementById('result').textContent = 'Пожалуйста, введите правильную сумму.';
+        document.getElementById('result').classList.add('error');
+        return;
+    }
+
+    // Выполнение GET-запроса
+    fetch(`https://shmadmin.snegirev.top/shm/v1/public/payment_accept?uid={{ uid | html }}&PaymentID={{ PaymentID | html }}&format=json&amount=${amount}`)
+    .then(response => {
+        // Проверка, что запрос завершился успешно
+        if (!response.ok) {
+            throw new Error('Ошибка сети: ' + response.status);
+        }
+        
+        // Парсинг JSON-ответа
+        return response.json().catch(() => {
+            throw new Error('Некорректный JSON-ответ');
+        });
+    })
+    .then(data => {
+        // Сбрасываем класс ошибки при успешном ответе
+        document.getElementById('result').classList.remove('error');
+        
+        // Проверка на наличие ошибки в самом содержимом ответа
+        if (data.status === "error") {
+            throw new Error(data.message);
+        }
+
+        // Если ошибки нет, выводим успешный результат
+        document.getElementById('result').textContent = `${data.message}`;
+    })
+    .catch(error => {
+        // Применение стиля ошибки
+        document.getElementById('result').textContent = `Ошибка: ${error.message}`;
+        document.getElementById('result').classList.add('error');
+    });
+}
+</script>
+
+</body>
+</html>
